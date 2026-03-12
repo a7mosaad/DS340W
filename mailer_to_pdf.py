@@ -19,6 +19,7 @@ from datetime import datetime
 import tempfile
 import shutil
 import re
+from xhtml2pdf import pisa
 
 # Required libraries
 try:
@@ -494,24 +495,17 @@ class EmailToPDFConverter:
                 .replace("'", '&#39;'))
     
     def _html_to_pdf(self, html_content):
-        """Convert HTML to PDF using WeasyPrint"""
-        try:
-            # Save HTML to temp file for debugging if needed
-            html_debug_path = self.temp_dir / 'debug.html'
-            with open(html_debug_path, 'w', encoding='utf-8') as f:
-                f.write(html_content)
-            
-            print(f"Debug HTML saved to: {html_debug_path}")
-            
-            # Convert to PDF
-            HTML(string=html_content, base_url=str(self.temp_dir)).write_pdf(
-                str(self.output_path)
+        from xhtml2pdf import pisa
+
+        with open(self.output_path, 'wb') as pdf_file:
+            pisa_status = pisa.CreatePDF(
+                html_content,
+                dest=pdf_file,
+                encoding='utf-8'
             )
-            
-        except Exception as e:
-            print(f"Error converting to PDF: {e}")
-            print(f"HTML saved to: {html_debug_path}")
-            raise
+
+    if pisa_status.err:
+        raise Exception(f"PDF conversion failed with {pisa_status.err} errors")
 
 
 def main():
