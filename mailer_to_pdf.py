@@ -83,13 +83,24 @@ class EmailToPDFConverter:
         html_body = msg.htmlBody
         text_body = msg.body
         for attachment in msg.attachments:
-            att_name = attachment.longFilename or attachment.shortFilename
-            att_data = attachment.data
-            if att_data:
-                self.attachments.append({'name': att_name, 'size': len(att_data)})
-                att_path = self.temp_dir / att_name
+            try:
+                att_name = attachment.longFilename or attachment.shortFilename or 'attachment'
+        # Strip null bytes and sanitize filename
+                att_name = att_name.replace('\x00', '').strip()
+        # Remove any other problematic characters
+                att_name = "".join(c for c in att_name if c.isprintable()).strip()
+                if not att_name:
+                    att_name = 'attachment'
+                    att_data = attachment.data
+                if att_data:
+                    self.attachments.append({'name': att_name, 'size': len(att_data)})
+                    att_path = self.temp_dir / att_name
                 with open(att_path, 'wb') as f:
                     f.write(att_data)
+            except Exception as e:
+                print(f"Warning: Skipped attachment due to error: {e}")
+                continue
+
         msg.close()
         return self._build_html(subject, from_addr, to_addr, str(date), cc_addr, html_body, text_body)
 
